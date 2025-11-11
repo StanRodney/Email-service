@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Services;
+
+use App\Interfaces\TemplateClientInterface;
+use Illuminate\Support\Facades\Http;
+
+class TemplateClientService implements TemplateClientInterface
+{
+    protected string $url;
+    protected string $token;
+    protected int $timeout;
+
+    public function __construct()
+    {
+        $config = config('services.template');
+        $this->url     = $config['url'] ?? '';
+        $this->token   = $config['token'] ?? '';
+        $this->timeout = $config['timeout'];
+    }
+
+    public function get(string $code, string $lang = 'en'): array
+    {
+        if (empty($this->url) || empty($this->token)) {
+            throw new \Exception('Template service not configured properly.');
+        }
+
+        $resp = Http::withHeaders(['X-Service-Token' => $this->token])
+            ->timeout($this->timeout)
+            ->get("{$this->url}/api/v1/templates/{$code}?lang={$lang}");
+
+        if (! $resp->ok()) {
+            throw new \Exception('Template fetch failed: ' . $resp->body());
+        }
+
+        return $resp->json();
+    }
+}
